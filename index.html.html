@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Expense Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#eef2f4;--sf:#fff;--ink:#14232b;--mu:#5d6f78;--ln:#d7e0e4;--ac:#0f766e;--ac2:#e0f2ef;--bad:#b42318;--bad2:#fde8e6;--ok:#157f3b;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e171c;--sf:#16232a;--ink:#e6eef1;--mu:#92a6af;--ln:#27383f;--ac:#3cc4b4;--ac2:#14343a;--bad:#ff8a7a;--bad2:#3a1e1b;--ok:#5fd48a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e171c;--sf:#16232a;--ink:#e6eef1;--mu:#92a6af;--ln:#27383f;--ac:#3cc4b4;--ac2:#14343a;--bad:#ff8a7a;--bad2:#3a1e1b;--ok:#5fd48a;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 Outfit,system-ui,Arial,sans-serif}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+h1{font-size:22px;margin:0;font-weight:700}h2{font-size:16px;margin:0 0 10px;font-weight:600}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:16px}
+.grid{display:grid;gap:14px}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}
+@media(max-width:760px){.g3,.g2{grid-template-columns:1fr}}
+.stat b{display:block;font-size:26px;font-weight:700;margin-top:2px}.stat span{color:var(--mu)}
+.inc b{color:var(--ok)}.exp b{color:var(--bad)}
+input,select{background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:9px 10px;width:100%}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+label{display:block;color:var(--mu);font-size:13px;margin-bottom:3px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;align-items:end}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:600}
+:root[data-theme="dark"] .btn{color:#06201d}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#06201d}}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ln)}
+.sm{padding:4px 9px;font-size:13px}
+.alert{background:var(--bad2);color:var(--bad);border:1px solid var(--bad);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:520px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--ln)}th{color:var(--mu);font-weight:500;font-size:13px}
+td.amt{font-weight:600;white-space:nowrap}
+.bar{height:8px;background:var(--ln);border-radius:6px;overflow:hidden;margin:4px 0 12px}.bar i{display:block;height:100%;background:var(--ac)}.bar i.over{background:var(--bad)}
+.bl{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.empty{color:var(--mu);padding:14px 0}
+.auth{max-width:380px;margin:8vh auto}.auth .card{display:grid;gap:12px}
+.tabs{display:flex;gap:8px}.tabs .btn{flex:1}
+.err{color:var(--bad);min-height:20px;font-size:14px}
+canvas{max-height:260px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:9}
+.hide{display:none!important}
+.bgt{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="auth" class="auth hide">
+  <h1 style="text-align:center;margin-bottom:14px">Smart Expense Tracker</h1>
+  <div class="card">
+    <div class="tabs"><button class="btn" id="tLogin">Log in</button><button class="btn alt" id="tReg">Register</button></div>
+    <div id="nameBox" class="hide"><label for="aName">Name</label><input id="aName" autocomplete="name"></div>
+    <div><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email"></div>
+    <div><label for="aPass">Password (6+ characters)</label><input id="aPass" type="password" autocomplete="current-password"></div>
+    <div class="err" id="aErr"></div>
+    <button class="btn" id="aGo">Log in</button>
+  </div>
+</section>
+
+<section id="app" class="hide">
+  <header>
+    <h1>Hi, <span id="uName"></span></h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div><input type="month" id="fMonth" aria-label="Month"></div>
+      <button class="btn alt sm" id="allM">All months</button>
+      <button class="btn alt sm" id="csv">Export CSV</button>
+      <button class="btn alt sm" id="theme">Dark mode</button>
+      <button class="btn alt sm" id="out">Log out</button>
+    </div>
+  </header>
+
+  <div id="alerts"></div>
+
+  <div class="grid g3" style="margin-bottom:14px">
+    <div class="card stat inc"><span>Income</span><b id="sInc">0</b></div>
+    <div class="card stat exp"><span>Expenses</span><b id="sExp">0</b></div>
+    <div class="card stat"><span>Balance</span><b id="sBal">0</b></div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <h2 id="formTitle">Add a transaction</h2>
+    <div class="row">
+      <div><label for="tType">Type</label><select id="tType"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+      <div><label for="tAmt">Amount</label><input id="tAmt" type="number" min="1" step="any"></div>
+      <div><label for="tCat">Category</label><select id="tCat"></select></div>
+      <div><label for="tDate">Date</label><input id="tDate" type="date"></div>
+      <div><label for="tNote">Note</label><input id="tNote" maxlength="60"></div>
+      <div style="display:flex;gap:6px"><button class="btn" id="tSave">Add</button><button class="btn alt hide" id="tCancel">Cancel</button></div>
+    </div>
+    <div class="err" id="tErr"></div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:14px">
+    <div class="card"><h2>Spending by category</h2><canvas id="pie"></canvas></div>
+    <div class="card"><h2>Last 6 months</h2><canvas id="bars"></canvas></div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:14px;grid-template-columns:2fr 1fr">
+    <div class="card">
+      <h2>Transactions</h2>
+      <div class="row" style="margin-bottom:10px">
+        <div><input id="fQ" placeholder="Search notes" aria-label="Search notes"></div>
+        <div><select id="fCat" aria-label="Filter by category"></select></div>
+      </div>
+      <div class="scroll"><table><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
+    </div>
+    <div class="card"><h2>Monthly budgets</h2><div id="bProg"></div><h2 style="margin-top:14px">Set limits</h2><div id="bForm"></div><button class="btn sm" id="bSave">Save budgets</button></div>
+  </div>
+</section>
+</div>
+<div id="toast" class="toast hide"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const EXP=['Food','Transport','Bills','Shopping','Health','Other'],INC=['Salary','Freelance','Gift','Other'];
+let store={users:{},data:{},cur:null};
+try{const s=JSON.parse(localStorage.getItem('et')||'null');if(s)store=Object.assign(store,s)}catch(e){}
+const save=()=>{try{localStorage.setItem('et',JSON.stringify(store))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'Rs '+Math.round(n).toLocaleString();
+const today=()=>new Date().toISOString().slice(0,10);
+let mode='login',editId=null,month=today().slice(0,7),pie,bars;
+
+async function hash(p){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('et:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){let h=0;for(const c of p)h=(h*31+c.charCodeAt(0))|0;return'f'+h}}
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.add('hide'),2600)};
+
+/* ---- auth ---- */
+function setMode(m){mode=m;$('#nameBox').classList.toggle('hide',m!=='reg');$('#tLogin').classList.toggle('alt',m!=='login');$('#tReg').classList.toggle('alt',m!=='reg');$('#aGo').textContent=m==='reg'?'Create account':'Log in';$('#aErr').textContent=''}
+$('#tLogin').onclick=()=>setMode('login');$('#tReg').onclick=()=>setMode('reg');
+$('#aGo').onclick=async()=>{
+  const email=$('#aEmail').value.trim().toLowerCase(),pw=$('#aPass').value,name=$('#aName').value.trim(),e=$('#aErr');
+  if(!/^\S+@\S+\.\S+$/.test(email))return e.textContent='Enter a valid email address.';
+  if(pw.length<6)return e.textContent='Use a password with at least 6 characters.';
+  const h=await hash(pw);
+  if(mode==='reg'){
+    if(!name)return e.textContent='Enter your name.';
+    if(store.users[email])return e.textContent='This email is already registered. Log in instead.';
+    store.users[email]={name,h};store.data[email]={tx:[],budgets:{}};
+  }else if(!store.users[email]||store.users[email].h!==h)return e.textContent='Email or password is incorrect.';
+  store.cur=email;save();$('#aPass').value='';start();
+};
+$('#out').onclick=()=>{store.cur=null;save();start()};
+
+function start(){
+  const u=store.cur&&store.users[store.cur];
+  $('#auth').classList.toggle('hide',!!u);$('#app').classList.toggle('hide',!u);
+  if(!u)return setMode('login');
+  $('#uName').textContent=u.name;$('#fMonth').value=month;$('#tDate').value=today();
+  fillCats();fillFilter();render();
+}
+const D=()=>store.data[store.cur];
+
+/* ---- form ---- */
+function fillCats(){const l=$('#tType').value==='income'?INC:EXP;$('#tCat').innerHTML=l.map(c=>`<option>${c}</option>`).join('')}
+$('#tType').onchange=fillCats;
+function fillFilter(){$('#fCat').innerHTML='<option value="">All categories</option>'+[...new Set([...EXP,...INC])].map(c=>`<option>${c}</option>`).join('')}
+function resetForm(){editId=null;$('#formTitle').textContent='Add a transaction';$('#tSave').textContent='Add';$('#tCancel').classList.add('hide');$('#tAmt').value='';$('#tNote').value='';$('#tDate').value=today();$('#tErr').textContent=''}
+$('#tCancel').onclick=resetForm;
+$('#tSave').onclick=()=>{
+  const amt=parseFloat($('#tAmt').value),date=$('#tDate').value;
+  if(!(amt>0))return $('#tErr').textContent='Enter an amount greater than 0.';
+  if(!date)return $('#tErr').textContent='Pick a date.';
+  const t={id:editId||Date.now(),type:$('#tType').value,amt,cat:$('#tCat').value,date,note:$('#tNote').value.trim()};
+  const d=D();
+  if(editId){d.tx=d.tx.map(x=>x.id===editId?t:x);toast('Transaction updated')}else{d.tx.push(t);toast('Transaction added')}
+  save();resetForm();render();
+  if(t.type==='expense'&&date.slice(0,7)===month){const lim=d.budgets[t.cat];if(lim&&spent(t.cat,month)>lim)toast('Over budget on '+t.cat)}
+};
+function edit(id){const t=D().tx.find(x=>x.id===id);if(!t)return;editId=id;$('#tType').value=t.type;fillCats();$('#tAmt').value=t.amt;$('#tCat').value=t.cat;$('#tDate').value=t.date;$('#tNote').value=t.note;$('#formTitle').textContent='Edit transaction';$('#tSave').textContent='Save changes';$('#tCancel').classList.remove('hide');scrollTo({top:0,behavior:'smooth'})}
+function del(id){if(!confirm('Delete this transaction?'))return;D().tx=D().tx.filter(x=>x.id!==id);save();render();toast('Transaction deleted')}
+
+/* ---- data helpers ---- */
+const inMonth=t=>!month||t.date.slice(0,7)===month;
+const spent=(c,m)=>D().tx.filter(t=>t.type==='expense'&&t.cat===c&&t.date.slice(0,7)===m).reduce((s,t)=>s+t.amt,0);
+$('#fMonth').onchange=e=>{month=e.target.value;render()};
+$('#allM').onclick=()=>{month='';$('#fMonth').value='';render()};
+$('#fQ').oninput=render;$('#fCat').onchange=render;
+
+/* ---- render ---- */
+function render(){
+  const d=D(),tx=d.tx.filter(inMonth);
+  const inc=tx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0),exp=tx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
+  $('#sInc').textContent=money(inc);$('#sExp').textContent=money(exp);$('#sBal').textContent=money(inc-exp);
+
+  const q=$('#fQ').value.toLowerCase(),fc=$('#fCat').value;
+  const rows=tx.filter(t=>(!fc||t.cat===fc)&&(!q||t.note.toLowerCase().includes(q)||t.cat.toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  $('#list').innerHTML=rows.length?rows.map(t=>`<tr><td>${t.date}</td><td>${esc(t.cat)}</td><td>${esc(t.note)||'–'}</td><td class="amt" style="color:var(--${t.type==='income'?'ok':'bad'})">${t.type==='income'?'+':'−'}${money(t.amt)}</td><td style="white-space:nowrap"><button class="btn alt sm" onclick="edit(${t.id})">Edit</button> <button class="btn alt sm" onclick="del(${t.id})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No transactions here yet. Add your first one above.</td></tr>';
+
+  budgets();charts(tx);
+}
+function budgets(){
+  const d=D(),m=month||today().slice(0,7),al=[];
+  $('#bProg').innerHTML=EXP.filter(c=>d.budgets[c]).map(c=>{const s=spent(c,m),l=d.budgets[c],p=Math.min(100,s/l*100),o=s>l;if(o)al.push(`${c}: ${money(s)} spent of ${money(l)}`);return`<div class="bl"><span>${c}</span><span>${money(s)} / ${money(l)}</span></div><div class="bar"><i class="${o?'over':''}" style="width:${p}%"></i></div>`}).join('')||'<div class="empty">No budgets set. Add limits below.</div>';
+  $('#alerts').innerHTML=al.length?`<div class="alert" role="alert"><b>Budget exceeded for ${m}:</b><br>${al.map(esc).join('<br>')}</div>`:'';
+  if(!$('#bForm').children.length)$('#bForm').innerHTML=EXP.map(c=>`<div class="bgt"><span>${c}</span><input type="number" min="0" data-c="${c}" aria-label="${c} limit"></div>`).join('');
+  document.querySelectorAll('#bForm input').forEach(i=>{if(document.activeElement!==i)i.value=d.budgets[i.dataset.c]||''});
+}
+$('#bSave').onclick=()=>{const b={};document.querySelectorAll('#bForm input').forEach(i=>{const v=parseFloat(i.value);if(v>0)b[i.dataset.c]=v});D().budgets=b;save();render();toast('Budgets saved')};
+
+const COL=['#0f766e','#d97706','#4f46e5','#db2777','#2563eb','#65a30d','#9333ea'];
+function charts(tx){
+  if(typeof Chart==='undefined')return;
+  const by={};tx.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);
+  pie&&pie.destroy();pie=new Chart($('#pie'),{type:'doughnut',data:{labels:Object.keys(by),datasets:[{data:Object.values(by),backgroundColor:COL,borderWidth:0}]},options:{plugins:{legend:{position:'bottom'}}}});
+  const ms=[],n=new Date();for(let i=5;i>=0;i--){const x=new Date(n.getFullYear(),n.getMonth()-i,1);ms.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'))}
+  const sum=(m,ty)=>D().tx.filter(t=>t.type===ty&&t.date.slice(0,7)===m).reduce((s,t)=>s+t.amt,0);
+  bars&&bars.destroy();bars=new Chart($('#bars'),{type:'bar',data:{labels:ms,datasets:[{label:'Income',data:ms.map(m=>sum(m,'income')),backgroundColor:'#15803d'},{label:'Expenses',data:ms.map(m=>sum(m,'expense')),backgroundColor:'#c2410c'}]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});
+}
+
+/* ---- csv + theme ---- */
+$('#csv').onclick=()=>{
+  const rows=[['Date','Type','Category','Amount','Note'],...D().tx.filter(inMonth).sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date,t.type,t.cat,t.amt,t.note])];
+  const f=v=>{v=String(v);return /^[=+\-@]/.test(v)?"'"+v:v};
+  const csv=rows.map(r=>r.map(v=>'"'+f(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='expenses-'+(month||'all')+'.csv';a.click();
+};
+$('#theme').onclick=()=>{const r=document.documentElement,dark=getComputedStyle(r).colorScheme==='dark';r.dataset.theme=dark?'light':'dark';$('#theme').textContent=dark?'Dark mode':'Light mode';render()};
+start();
+</script>
+</body>
+</html>
